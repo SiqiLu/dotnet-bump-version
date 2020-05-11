@@ -1,0 +1,4 @@
+{
+    "git.ignoreLimitWarning": true,
+    "eslint.workingDirectories": [{ "directory": "c:/r/SiqiLu/dotnet-bump-version/", "changeProcessCWD": true }]
+}

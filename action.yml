@@ -14,4 +14,4 @@ inputs:
         required: false
 runs:
     using: "node12"
-    main: "lib/main.js"
+    main: "lib/Main.js"

@@ -2,7 +2,7 @@ import * as core from "@actions/core";
 import { exec } from "@actions/exec";
 import { ActionContext } from "./ActionContext";
 
-export const commit = async (eventContext: ActionContext, message: string, githubToken: string): Promise<void> => {
+export const commit = async (eventContext: ActionContext, filesToCommit: string[], message: string, githubToken: string): Promise<void> => {
     try {
         core.info(`Committing changes with message "${message}".`);
         const remoteRepository = `https://${eventContext.githubActor}:${githubToken}@github.com/${eventContext.githubRepository}.git`;
@@ -24,7 +24,9 @@ export const commit = async (eventContext: ActionContext, message: string, githu
         // await exec('git', ['show-ref'], options)
         // await exec('git', ['branch', '--verbose'], options)
 
-        await exec("git", ["add", "-A"], options);
+        for (const file of filesToCommit) {
+            await exec("git", ["add", file], options);
+        }
 
         try {
             await exec("git", ["commit", "-m", `${message}`], options);

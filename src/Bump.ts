@@ -17,7 +17,7 @@ export class Bump {
         this.message = message;
     }
 
-    bump(): void {
+    bump(): boolean {
         const originContent = fs.readFileSync(this.file, "utf8").toString();
         core.debug(`Bump.bump originContent: ${originContent}`);
         const matches = this.versionRex.exec(originContent);
@@ -43,8 +43,10 @@ export class Bump {
             fs.writeFileSync(this.file, bumppedContent, "utf8");
 
             core.info(`${this.file} bump version to ${bumppedVersion} from ${originVersion} .`);
+            return true;
         } else {
             core.warning(`Can not find version information from ${this.file} .`);
+            return false;
         }
     }
 

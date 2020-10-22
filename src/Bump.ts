@@ -6,14 +6,14 @@ export class Bump {
     readonly packageVersionRex = /<PackageVersion>[\S]*(([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+))[\S]*<\/PackageVersion>/i;
     readonly assemblyVersionRex = /<AssemblyVersion>[\S]*(([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+))[\S]*<\/AssemblyVersion>/i;
     readonly fileVersionRex = /<FileVersion>[\S]*(([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+))[\S]*<\/FileVersion>/i;
-    readonly informationalVersionRex = /<InformationlVersion>[\S]*(([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+))[\S]*<\/InformationlVersion>/gi;
+    readonly informationalVersionRex = /<InformationalVersion>[\S]*(([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+))[\S]*<\/InformationalVersion>/gi;
 
     readonly versions = new Map([
         ["Version", this.versionRex],
         ["PackageVersion", this.packageVersionRex],
-        ["AssemblyVersionRex", this.assemblyVersionRex],
-        ["FileVersionRex", this.fileVersionRex],
-        ["InformationalVersionRex", this.informationalVersionRex],
+        ["AssemblyVersion", this.assemblyVersionRex],
+        ["FileVersion", this.fileVersionRex],
+        ["InformationalVersion", this.informationalVersionRex],
     ]);
 
     readonly optionsRex = /(--(major)|--(minor)|--(patch))/i;

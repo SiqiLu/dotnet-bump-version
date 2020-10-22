@@ -83,7 +83,7 @@ export class ActionContext {
     }
 
     get branch(): string {
-        return process.env.BRANCH || this.ref.split("/").reverse()[0] || "";
+        return process.env.BRANCH || this.ref.substr("refs/heads/".length) || "";
     }
 
     get headCommit(): {

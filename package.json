@@ -1,6 +1,6 @@
 {
     "name": "dotnet-bump-version",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "A GitHub Action to easily bump .NET Core project version files(.csproj).",
     "main": "lib/main.js",
     "scripts": {
@@ -23,18 +23,18 @@
     "author": "Siqi Lu",
     "license": "MIT",
     "dependencies": {
-        "@actions/core": "^1.2.4",
+        "@actions/core": "^1.2.6",
         "@actions/exec": "^1.0.4",
-        "@actions/github": "^2.2.0",
-        "@types/node": "^13.13.5",
-        "globby": "^11.0.0"
+        "@actions/github": "^4.0.0",
+        "@types/node": "^14.14.2",
+        "globby": "^11.0.1"
     },
     "devDependencies": {
-        "@typescript-eslint/parser": "^2.31.0",
-        "eslint": "^7.0.0",
-        "eslint-plugin-github": "^3.4.1",
-        "eslint-plugin-import": "^2.20.2",
-        "prettier": "^2.0.5",
-        "typescript": "^3.8.3"
+        "@typescript-eslint/parser": "^4.5.0",
+        "eslint": "^7.11.0",
+        "eslint-plugin-github": "^4.1.1",
+        "eslint-plugin-import": "^2.22.1",
+        "prettier": "^2.1.2",
+        "typescript": "^4.0.3"
     }
 }

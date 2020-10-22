@@ -40,7 +40,7 @@ jobs:
             - name: Setup .NET Core
               uses: actions/setup-dotnet@v1
               with:
-                  dotnet-version: 3.1.201
+                  dotnet-version: 3.1.x
             - name: Install dependencies
               run: dotnet restore
             - name: Build

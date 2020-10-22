@@ -1,6 +1,5 @@
 {
     "plugins": ["@typescript-eslint"],
-    "extends": ["plugin:github/es6"],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
         "ecmaVersion": 9,

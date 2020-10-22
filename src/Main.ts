@@ -5,34 +5,35 @@ import { Bump } from "./Bump";
 import { commit } from "./Commit";
 
 async function bumpVersion(): Promise<void> {
-    core.info("dotnet-bump-version 2028");
     core.info("dotnet-bump-version action is running...");
     core.info("");
 
     const actionContext = new ActionContext(github.context);
 
-    core.debug("githubContext:");
-    core.debug(JSON.stringify(github.context));
+    core.debug("Main.bumpVersion githubContext:");
+    core.debug("Main.bumpVersion " + JSON.stringify(github.context));
 
-    core.debug("actionContext:");
+    core.debug("Main.bumpVersion actionContext:");
     core.debug(
-        JSON.stringify({
-            eventName: actionContext.eventName,
-            sha: actionContext.sha,
-            ref: actionContext.ref,
-            branch: actionContext.branch,
-            headCommit: actionContext.headCommit,
-            pusher: actionContext.pusher,
-        })
+        "Main.bumpVersion " +
+            JSON.stringify({
+                eventName: actionContext.eventName,
+                sha: actionContext.sha,
+                ref: actionContext.ref,
+                branch: actionContext.branch,
+                headCommit: actionContext.headCommit,
+                pusher: actionContext.pusher,
+            })
     );
 
-    core.debug("inputs:");
+    core.debug("Main.bumpVersion inputs:");
     core.debug(
-        JSON.stringify({
-            versionFiles: actionContext.versionFiles,
-            githubToken: actionContext.githubToken,
-            pushChanges: actionContext.needPushChanges,
-        })
+        "Main.bumpVersion " +
+            JSON.stringify({
+                versionFiles: actionContext.versionFiles,
+                githubToken: actionContext.githubToken,
+                pushChanges: actionContext.needPushChanges,
+            })
     );
 
     // 只在 Github event 为 push 的时候生效
@@ -41,18 +42,17 @@ async function bumpVersion(): Promise<void> {
         return;
     }
 
-    core.info(`eventName: ${actionContext.eventName}`);
-    core.info(`sha: ${actionContext.sha}`);
-    core.info(`ref: ${actionContext.ref}`);
-    core.info(`githubActor: ${actionContext.githubActor}`);
-    core.info(`githubRepository: ${actionContext.githubRepository}`);
-    core.info(`githubWorkspace: ${actionContext.githubWorkspace}`);
-    core.info(`branch: ${actionContext.branch}`);
-    core.info(`pusher: ${actionContext.pusher.name}`);
-    core.info(`headCommit.id: ${actionContext.headCommit.id}`);
-    core.info(`headCommit.message: ${actionContext.headCommit.message}`);
-    core.info(`headCommit.timestamp: ${actionContext.headCommit.timestamp}`);
-    core.info("");
+    core.debug(`Main.bumpVersion eventName: ${actionContext.eventName}`);
+    core.debug(`Main.bumpVersion sha: ${actionContext.sha}`);
+    core.debug(`Main.bumpVersion ref: ${actionContext.ref}`);
+    core.debug(`Main.bumpVersion githubActor: ${actionContext.githubActor}`);
+    core.debug(`Main.bumpVersion githubRepository: ${actionContext.githubRepository}`);
+    core.debug(`Main.bumpVersion githubWorkspace: ${actionContext.githubWorkspace}`);
+    core.debug(`Main.bumpVersion branch: ${actionContext.branch}`);
+    core.debug(`Main.bumpVersion pusher: ${actionContext.pusher.name}`);
+    core.debug(`Main.bumpVersion headCommit.id: ${actionContext.headCommit.id}`);
+    core.debug(`Main.bumpVersion headCommit.message: ${actionContext.headCommit.message}`);
+    core.debug(`Main.bumpVersion headCommit.timestamp: ${actionContext.headCommit.timestamp}`);
 
     // 替换 version file 中的 version
     const versionFiles = await actionContext.getVersionFiles();
@@ -66,8 +66,10 @@ async function bumpVersion(): Promise<void> {
 
     // 推动更改
     if (actionContext.needPushChanges && actionContext.githubToken) {
-        await commit(actionContext, "Bump versions by dotnet-bump-version.", actionContext.githubToken);
+        await commit(versionFiles, actionContext, "Bump versions by dotnet-bump-version.", actionContext.githubToken);
     }
+
+    core.debug("Finishing: dotnet-bump-version");
 }
 
 async function run(): Promise<void> {

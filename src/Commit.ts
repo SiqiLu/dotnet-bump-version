@@ -3,7 +3,7 @@ import { exec } from "@actions/exec";
 import { ActionContext } from "./ActionContext";
 
 export const commit = async (
-    versionFiles: string[],
+    filesToCommit: string[],
     eventContext: ActionContext,
     message: string,
     githubToken: string
@@ -35,10 +35,12 @@ export const commit = async (
         await exec("git", ["remote", "add", "publisher", remoteRepository], options);
         // await exec('git', ['show-ref'], options)
         // await exec('git', ['branch', '--verbose'], options)
-
+      
         // await exec("git", ["add", "-A"], options);
-
-        for (const file of versionFiles) {
+        
+        // Issue #5
+        // Only commit changed files 
+        for (const file of filesToCommit) {
             core.info(`git add "${file}"`);
             await exec("git", ["add", file], options);
         }

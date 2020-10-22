@@ -58,15 +58,17 @@ async function bumpVersion(): Promise<void> {
     const versionFiles = await actionContext.getVersionFiles();
 
     core.info(`VersionFiles: ${JSON.stringify(versionFiles)}`);
-
-    versionFiles.forEach(file => {
+    
+    // Issue #5
+    // Only commit changed files 
+    var bumpedFiles = versionFiles.filter(file => {
         const bump = new Bump(file, actionContext.headCommit.message);
-        bump.bump();
+        return bump.bump();
     });
 
     // 推动更改
     if (actionContext.needPushChanges && actionContext.githubToken) {
-        await commit(versionFiles, actionContext, "Bump versions by dotnet-bump-version.", actionContext.githubToken);
+        await commit(bumpedFiles, actionContext, "Bump versions by dotnet-bump-version.", actionContext.githubToken);
     }
 
     core.debug("Finishing: dotnet-bump-version");

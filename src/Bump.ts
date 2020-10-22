@@ -26,7 +26,7 @@ export class Bump {
         this.message = message;
     }
 
-    bump(): void {
+    bump(): boolean {
         let options = "build";
         const optionsMatches = this.optionsRex.exec(this.message);
         core.debug(`Bump.bump optionsMatches: ${JSON.stringify(optionsMatches)}`);
@@ -39,6 +39,7 @@ export class Bump {
         core.debug(`Bump.bump originContent: ${originContent}`);
 
         var bumppedContent = originContent.trim();
+        var modified = false;
 
         this.versions.forEach((v, k) => {
             const matches = v.exec(bumppedContent);
@@ -56,6 +57,7 @@ export class Bump {
                 bumppedContent = bumppedContent.replace(originMatch, bumppedMatch);
 
                 core.info(`"${this.file}" bump ${k} to "${bumppedVersion}" from "${originVersion}".`);
+                modified = true;
             } else {
                 core.info(`Can not find ${k} information from "${this.file}".`);
             }
@@ -63,6 +65,8 @@ export class Bump {
 
         core.debug(`Bump.bump bumppedContent: ${bumppedContent}`);
         fs.writeFileSync(this.file, bumppedContent, "utf8");
+        
+      return modified;
     }
 
     private static bumpVersion(matches: RegExpMatchArray, options: string): string {

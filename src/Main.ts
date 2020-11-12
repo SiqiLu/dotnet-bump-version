@@ -38,7 +38,7 @@ async function bumpVersion(): Promise<void> {
 
     // 只在 Github event 为 push 的时候生效
     if (github.context.eventName !== "push") {
-        core.info('Github event is not "push", exit.');
+        core.info(`Github event is ${github.context.eventName} and not "push", exit.`);
         return;
     }
 
@@ -62,7 +62,7 @@ async function bumpVersion(): Promise<void> {
     // Issue #5
     // Only commit changed files 
     var bumpedFiles = versionFiles.filter(file => {
-        const bump = new Bump(file, actionContext.headCommit.message);
+        const bump = new Bump(file, actionContext.headCommit.message, actionContext.number);
         return bump.bump();
     });
 

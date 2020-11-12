@@ -19,6 +19,10 @@ This action program only supports "push" events.
       # Patterns supported by Globby are supported.Leading ! changes the meaning of an include pattern to exclude.
       version_file: \*_/_.csproj
 
+      # An optional parameter, which lets you specify the build/patch number to set.
+      # If the input is set, the last digit of the version number will be set to this value instead of incrementing the existing value by 1.
+      number: ${{ github.GITHUB_RUN_ID }}
+
       github_token: ${{ secrets.GITHUB_TOKEN }}
 ```
 

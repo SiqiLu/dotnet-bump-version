@@ -20,10 +20,12 @@ export class Bump {
 
     file: string;
     message: string;
+    number: string | null;
 
-    constructor(file: string, message: string) {
+    constructor(file: string, message: string, number: string | null) {
         this.file = file;
         this.message = message;
+        this.number = number;
     }
 
     bump(): boolean {
@@ -48,7 +50,7 @@ export class Bump {
             if (matches && matches.length === 6) {
                 const originVersion = matches[1].toString();
                 core.debug(`Bump.bump ${k}.originVersion: ${originVersion}`);
-                const bumppedVersion = Bump.bumpVersion(matches, options);
+                const bumppedVersion = Bump.bumpVersion(matches, options, this.number);
                 core.debug(`Bump.bump ${k}.bumppedVersion: ${bumppedVersion}`);
                 const originMatch = matches[0].toString();
                 core.debug(`Bump.bump ${k}.originMatch: ${originMatch}`);
@@ -69,23 +71,23 @@ export class Bump {
       return modified;
     }
 
-    private static bumpVersion(matches: RegExpMatchArray, options: string): string {
+    private static bumpVersion(matches: RegExpMatchArray, options: string, number: string | null): string {
         if (options === "--major") {
-            const versionPart = +matches[2].toString() + 1;
+            const versionPart = number || +matches[2].toString() + 1;
             return `${versionPart}.${matches[3]}.${matches[4]}.${matches[5]}`;
         }
 
         if (options === "--minor") {
-            const versionPart = +matches[3].toString() + 1;
+            const versionPart = number || +matches[3].toString() + 1;
             return `${matches[2]}.${versionPart}.${matches[4]}.${matches[5]}`;
         }
 
         if (options === "--patch") {
-            const versionPart = +matches[4].toString() + 1;
+            const versionPart = number || +matches[4].toString() + 1;
             return `${matches[2]}.${matches[3]}.${versionPart}.${matches[5]}`;
         }
 
-        const versionPart = +matches[5].toString() + 1;
+        const versionPart = number || +matches[5].toString() + 1;
         return `${matches[2]}.${matches[3]}.${matches[4]}.${versionPart}`;
     }
 }

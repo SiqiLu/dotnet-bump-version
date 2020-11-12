@@ -97,3 +97,6 @@ Thumbs.db
 # Ignore built ts files
 __tests__/runner/*
 # lib/**/* # for Github Action
+
+# Ignore .csproj file used for development and testing
+dev-proj.csproj

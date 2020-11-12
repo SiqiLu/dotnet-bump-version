@@ -58,6 +58,10 @@ export class ActionContext {
         return versionFiles;
     }
 
+    get number(): string | null {
+        return core.getInput("number") || null;
+    }
+
     get eventName(): string {
         return this.githubContext.eventName;
     }

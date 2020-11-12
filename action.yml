@@ -12,8 +12,8 @@ inputs:
     github_token:
         description: "the github token to push changes"
         required: false
-    number:
-        description: "set a spesific build or patch number, such as $GITHUB_RUN_ID or $GITHUB_RUN_NUMBER, instead of incrementing the last digit by 1."
+    version_number:
+        description: "set a spesific build or patch number (1.0.*), such as $GITHUB_RUN_ID or $GITHUB_RUN_NUMBER, instead of incrementing the last digit by 1."
         required: false
 runs:
     using: "node12"

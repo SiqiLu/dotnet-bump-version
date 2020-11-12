@@ -58,8 +58,8 @@ export class ActionContext {
         return versionFiles;
     }
 
-    get number(): string | null {
-        return core.getInput("number") || null;
+    get versionNumber(): string | null {
+        return core.getInput("version_number") || null;
     }
 
     get eventName(): string {

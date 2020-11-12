@@ -62,7 +62,7 @@ async function bumpVersion(): Promise<void> {
     // Issue #5
     // Only commit changed files 
     var bumpedFiles = versionFiles.filter(file => {
-        const bump = new Bump(file, actionContext.headCommit.message, actionContext.number);
+        const bump = new Bump(file, actionContext.headCommit.message, actionContext.versionNumber);
         return bump.bump();
     });
 

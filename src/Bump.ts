@@ -20,12 +20,12 @@ export class Bump {
 
     file: string;
     message: string;
-    number: string | null;
+    versionNumber: string | null;
 
-    constructor(file: string, message: string, number: string | null) {
+    constructor(file: string, message: string, versionNumber: string | null) {
         this.file = file;
         this.message = message;
-        this.number = number;
+        this.versionNumber = versionNumber;
     }
 
     bump(): boolean {
@@ -50,7 +50,7 @@ export class Bump {
             if (matches && matches.length === 6) {
                 const originVersion = matches[1].toString();
                 core.debug(`Bump.bump ${k}.originVersion: ${originVersion}`);
-                const bumppedVersion = Bump.bumpVersion(matches, options, this.number);
+                const bumppedVersion = Bump.bumpVersion(matches, options, this.versionNumber);
                 core.debug(`Bump.bump ${k}.bumppedVersion: ${bumppedVersion}`);
                 const originMatch = matches[0].toString();
                 core.debug(`Bump.bump ${k}.originMatch: ${originMatch}`);

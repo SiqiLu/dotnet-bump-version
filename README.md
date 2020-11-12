@@ -21,7 +21,7 @@ This action program only supports "push" events.
 
       # An optional parameter, which lets you specify the build/patch number to set (1.0.*).
       # If the input is set, the last digit of the version number will be set to this value instead of incrementing the existing value by 1.
-      version_number: ${{ github.GITHUB_RUN_ID }}
+      version_number: ${{ github.run_number }}
 
       github_token: ${{ secrets.GITHUB_TOKEN }}
 ```

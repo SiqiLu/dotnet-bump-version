@@ -30,6 +30,9 @@ export const commit = async (
         
         core.info(`git config user.email "${eventContext.pusher.email}"`);
         await exec("git", ["config", "user.email", `"${eventContext.pusher.email}"`], options);
+
+        core.info(`git config pull.rebase false`);
+        await exec("git", ["config", "pull.rebase", `false`], options);
         
         core.info(`git remote add publisher ${remoteRepository}`);
         await exec("git", ["remote", "add", "publisher", remoteRepository], options);

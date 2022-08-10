@@ -26,7 +26,7 @@ inputs:
             "*.*.*.*" does not overwrite ant part of the version.
             "1.*.*.*" overwrite the major part with number 1.
             "*.*.*.Alpha" overwrite the build part with string "Alpha".
-            "*.*.*.${{ "{{" }} github.run_number {{ "}}" }}" overwrite the build part with ${{ "{{" }} github.run_number {{ "}}" }}.'
+            "*.*.*.github.run_number" overwrite the build part with "github.run_number".'
         default: "*.*.*.*"
         required: false
     github_token:

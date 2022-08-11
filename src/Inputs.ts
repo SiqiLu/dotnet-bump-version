@@ -23,7 +23,7 @@ export class Inputs {
 
     private readonly _overwritePatchRex: RegExp = /^[^\.\s]*\.[^\.\s]*\.([^\.\s]*)\.[^\.\s]*$/;
 
-    private readonly _overwriteBuildRex: RegExp = /^[^\.\s]*\.[^\.\s]*\.[^\.\s]*\.([^\.\s])*$/;
+    private readonly _overwriteBuildRex: RegExp = /^[^\.\s]*\.[^\.\s]*\.[^\.\s]*\.([^\.\s]*)$/;
 
     private _overwriteMajor: boolean | null = null;
 

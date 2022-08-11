@@ -40,7 +40,7 @@ export class Bump {
 
     private readonly _inputs: Inputs;
 
-    private readonly _bumpOptionFromCommitMessage: string;
+    private readonly _bumpOptionFromCommitMessage: string[];
 
     constructor(file: string, commitMessage: string, inputs: Inputs) {
         this._file = file;
@@ -51,25 +51,29 @@ export class Bump {
 
     public get bumpMajor(): boolean {
         return (
-            !this._inputs.overwriteMajor && (this._bumpOptionFromCommitMessage === "major" || this._inputs.bumpMajor)
+            !this._inputs.overwriteMajor &&
+            (this._bumpOptionFromCommitMessage.includes("major") || this._inputs.bumpMajor)
         );
     }
 
     public get bumpMinor(): boolean {
         return (
-            !this._inputs.overwriteMinor && (this._bumpOptionFromCommitMessage === "minor" || this._inputs.bumpMinor)
+            !this._inputs.overwriteMinor &&
+            (this._bumpOptionFromCommitMessage.includes("minor") || this._inputs.bumpMinor)
         );
     }
 
     public get bumpPatch(): boolean {
         return (
-            !this._inputs.overwritePatch && (this._bumpOptionFromCommitMessage === "patch" || this._inputs.bumpPatch)
+            !this._inputs.overwritePatch &&
+            (this._bumpOptionFromCommitMessage.includes("patch") || this._inputs.bumpPatch)
         );
     }
 
     public get bumpBuild(): boolean {
         return (
-            !this._inputs.overwriteBuild && (this._bumpOptionFromCommitMessage === "build" || this._inputs.bumpBuild)
+            !this._inputs.overwriteBuild &&
+            (this._bumpOptionFromCommitMessage.includes("build") || this._inputs.bumpBuild)
         );
     }
 
@@ -171,7 +175,7 @@ export class Bump {
             const versionMatches = v.exec(bumppedContent);
             core.debug(`Bump.bump versionMatches: ${JSON.stringify(versionMatches)}`);
 
-            if (versionMatches && versionMatches.length >= 2) {
+            if (versionMatches && versionMatches.length == 6) {
                 const originVersion = versionMatches[1].toString();
                 core.debug(`Bump.bump ${k}.originVersion: ${originVersion}`);
 
@@ -181,7 +185,9 @@ export class Bump {
                 let patch: string | null = null;
                 let build: string | null = null;
 
-                if (versionMatches.length >= 3) {
+                const majorMatch = versionMatches[2];
+                core.debug(`Bump.bump ${k}.majorMatch: ${majorMatch}`);
+                if (majorMatch && majorMatch.length > 0) {
                     // version has major part
                     const majorPart = versionMatches[2].toString();
                     core.debug(`Bump.bump version majorPart: ${majorPart}`);
@@ -205,7 +211,9 @@ export class Bump {
                     core.debug(`Bump.bump version modifiedMajorPart: ${major ?? "null"}`);
                 }
 
-                if (versionMatches.length >= 4) {
+                const minorMatch = versionMatches[3];
+                core.debug(`Bump.bump ${k}.minorMatch: ${minorMatch}`);
+                if (minorMatch && minorMatch.length > 0) {
                     // version has minor part
                     const minorPart = versionMatches[3].toString();
                     core.debug(`Bump.bump version minorPart: ${minorPart}`);
@@ -223,13 +231,15 @@ export class Bump {
                         this.bumpMinor,
                         hasBumped
                     );
-                    hasBumped = bumpResult.bumped;
+                    hasBumped = hasBumped || bumpResult.bumped;
                     minor = bumpResult.version;
 
                     core.debug(`Bump.bump version modifiedMinorPart: ${minor ?? "null"}`);
                 }
 
-                if (versionMatches.length >= 5) {
+                const patchMatch = versionMatches[4];
+                core.debug(`Bump.bump ${k}.patchMatch: ${patchMatch}`);
+                if (patchMatch && patchMatch.length > 0) {
                     // version has patch part
                     const patchPart = versionMatches[4].toString();
                     core.debug(`Bump.bump version patchPart: ${patchPart}`);
@@ -247,13 +257,15 @@ export class Bump {
                         this.bumpPatch,
                         hasBumped
                     );
-                    hasBumped = bumpResult.bumped;
+                    hasBumped = hasBumped || bumpResult.bumped;
                     patch = bumpResult.version;
 
                     core.debug(`Bump.bump version modifiedPatchPart: ${patch ?? "null"}`);
                 }
 
-                if (versionMatches.length >= 6) {
+                const buildMatch = versionMatches[5];
+                core.debug(`Bump.bump ${k}.buildMatch: ${buildMatch}`);
+                if (buildMatch && buildMatch.length > 0) {
                     // version has build part
                     const buildPart = versionMatches[5].toString();
                     core.debug(`Bump.bump version buildPart: ${buildPart}`);
@@ -271,7 +283,7 @@ export class Bump {
                         this.bumpBuild,
                         hasBumped
                     );
-                    hasBumped = bumpResult.bumped;
+                    hasBumped = hasBumped || bumpResult.bumped;
                     build = bumpResult.version;
 
                     core.debug(`Bump.bump version modifiedBuildPart: ${build ?? "null"}`);
@@ -296,7 +308,7 @@ export class Bump {
                     core.info(`"${this._file}" ${k} "${originVersion}" is unbumped.`);
                 }
             } else {
-                core.info(`Can not find ${k} from "${this._file}".`);
+                core.info(`Can not find ${k} from "${this._file}" or the format of the version number is incorrect.`);
             }
         });
 
@@ -314,16 +326,19 @@ export class Bump {
         return fileModified;
     }
 
-    private _getBumpOptionFromCommitMessage(): string {
-        let options = "none";
+    private _getBumpOptionFromCommitMessage(): string[] {
+        // ["--major","--major",major,null,null,null]
+        // ["--patch","--patch",null,null,"patch",null]
+
+        let options: string[] = [];
         const optionsMatches = Bump._optionsRex.exec(this._commitMessage);
         core.debug(`Bump._getBumpOptionFromCommitMessage optionsMatches: ${JSON.stringify(optionsMatches)}`);
 
         if (optionsMatches && optionsMatches.length >= 3) {
-            options = optionsMatches[1].toString();
+            options = optionsMatches.filter((v, i) => v && v.length > 0 && i >= 2).map(v => v.toString());
         }
 
-        core.debug(`Bump._getBumpOptionFromCommitMessage options: ${options}`);
+        core.debug(`Bump._getBumpOptionFromCommitMessage options: ${JSON.stringify(options)}`);
 
         return options;
     }

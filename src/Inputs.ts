@@ -1,5 +1,4 @@
 import * as core from "@actions/core";
-import * as globby from "globby";
 
 export class Inputs {
     private static readonly _instance: Inputs = new Inputs();
@@ -26,26 +25,48 @@ export class Inputs {
 
     private readonly _overwriteBuildRex: RegExp = /^[^\.\s]*\.[^\.\s]*\.[^\.\s]*\.([^\.\s])*$/;
 
-    private _versionFiles: string[];
+    private _overwriteMajor: boolean | null = null;
+
+    private _overwriteMinor: boolean | null = null;
+
+    private _overwritePatch: boolean | null = null;
+
+    private _overwriteBuild: boolean | null = null;
+
+    private _overwriteMajorString: string | null = null;
+
+    private _overwriteMinorString: string | null = null;
+
+    private _overwritePatchString: string | null = null;
+
+    private _overwriteBuildString: string | null = null;
+
+    private _versionFiles: string[] = [];
 
     private constructor() {
         core.info("Inputs initializing...");
+        core.info("");
 
-        this._versionFiles = this.getVersionFiles();
+        core.info(`Inputs.versionFiles: ${this.versionFiles}`);
+        core.info(`Inputs.versionFilesPatterns: ${JSON.stringify(this.versionFilesPatterns)}`);
+        core.info("");
 
         core.info(`Inputs.versionMask: ${this.versionMask}`);
         core.info(`Inputs.bumpMajor: ${this.bumpMajor.toString()}`);
         core.info(`Inputs.bumpMinor: ${this.bumpMinor.toString()}`);
         core.info(`Inputs.bumpPatch: ${this.bumpPatch.toString()}`);
         core.info(`Inputs.bumpBuild: ${this.bumpBuild.toString()}`);
+        core.info("");
 
         core.info(`Inputs.versionOverwrite: ${this.versionOverwrite}`);
         core.info(`Inputs.overwriteMajor: ${this.overwriteMajor.toString()} (${this.overwriteMajorString})`);
         core.info(`Inputs.overwriteMinor: ${this.overwriteMinor.toString()} (${this.overwriteMinorString})`);
         core.info(`Inputs.overwritePatch: ${this.overwritePatch.toString()} (${this.overwritePatchString})`);
         core.info(`Inputs.overwriteBuild: ${this.overwriteBuild.toString()} (${this.overwriteBuildString})`);
+        core.info("");
 
         core.info(`Inputs.needPushChanges: ${this.needPushChanges.toString()}`);
+        core.info("");
     }
 
     public static get current(): Inputs {
@@ -66,6 +87,17 @@ export class Inputs {
 
     public get githubToken(): string {
         return core.getInput("github_token") || "";
+    }
+
+    public get versionFilesPatterns(): string[] {
+        let patterns: string[] = [];
+
+        if (Inputs._isJsonArray(this.versionFiles)) {
+            patterns = JSON.parse(this.versionFiles) as string[];
+        } else if (typeof this.versionFiles == "string" && this.versionFiles) {
+            patterns = [this.versionFiles];
+        }
+        return patterns;
     }
 
     public get bumpMajor(): boolean {
@@ -89,67 +121,115 @@ export class Inputs {
     }
 
     public get overwriteMajor(): boolean {
-        const matches = this._overwriteMajorRex.exec(this.versionOverwrite);
-        if (matches && matches.length >= 1) {
-            return matches[0].toString() != "*";
+        if (this._overwriteMajor != null) {
+            return this._overwriteMajor;
         }
-        return false;
+        const matches = this._overwriteMajorRex.exec(this.versionOverwrite);
+
+        core.debug("Inputs.overwriteMajor RexMatches: " + JSON.stringify(matches ?? "null"));
+
+        if (matches && matches.length >= 2) {
+            return (this._overwriteMajor = matches[1].toString() != "*");
+        }
+        return (this._overwriteMajor = false);
     }
 
     public get overwriteMinor(): boolean {
-        const matches = this._overwriteMinorRex.exec(this.versionOverwrite);
-        if (matches && matches.length >= 1) {
-            return matches[0].toString() != "*";
+        if (this._overwriteMinor != null) {
+            return this._overwriteMinor;
         }
-        return false;
+        const matches = this._overwriteMinorRex.exec(this.versionOverwrite);
+
+        core.debug("Inputs.overwriteMinor RexMatches: " + JSON.stringify(matches ?? "null"));
+
+        if (matches && matches.length >= 2) {
+            return (this._overwriteMinor = matches[1].toString() != "*");
+        }
+        return (this._overwriteMinor = false);
     }
 
     public get overwritePatch(): boolean {
-        const matches = this._overwritePatchRex.exec(this.versionOverwrite);
-        if (matches && matches.length >= 1) {
-            return matches[0].toString() != "*";
+        if (this._overwritePatch != null) {
+            return this._overwritePatch;
         }
-        return false;
+        const matches = this._overwritePatchRex.exec(this.versionOverwrite);
+
+        core.debug("Inputs.overwritePatch RexMatches: " + JSON.stringify(matches ?? "null"));
+
+        if (matches && matches.length >= 2) {
+            return (this._overwritePatch = matches[1].toString() != "*");
+        }
+        return (this._overwritePatch = false);
     }
 
     public get overwriteBuild(): boolean {
-        const matches = this._overwriteBuildRex.exec(this.versionOverwrite);
-        if (matches && matches.length >= 1) {
-            return matches[0].toString() != "*";
+        if (this._overwriteBuild != null) {
+            return this._overwriteBuild;
         }
-        return false;
+        const matches = this._overwriteBuildRex.exec(this.versionOverwrite);
+
+        core.debug("Inputs.overwriteBuild RexMatches: " + JSON.stringify(matches ?? "null"));
+
+        if (matches && matches.length >= 2) {
+            return (this._overwriteBuild = matches[1].toString() != "*");
+        }
+        return (this._overwriteBuild = false);
     }
 
     public get overwriteMajorString(): string {
-        const matches = this._overwriteMajorRex.exec(this.versionOverwrite);
-        if (matches && matches.length >= 1) {
-            return matches[0].toString();
+        if (this._overwriteMajorString != null) {
+            return this._overwriteMajorString;
         }
-        return "";
+        const matches = this._overwriteMajorRex.exec(this.versionOverwrite);
+
+        core.debug("Inputs.overwriteMajorString RexMatches: " + JSON.stringify(matches ?? "null"));
+
+        if (matches && matches.length >= 2) {
+            return (this._overwriteMajorString = matches[1].toString());
+        }
+        return (this._overwriteMajorString = "");
     }
 
     public get overwriteMinorString(): string {
-        const matches = this._overwriteMinorRex.exec(this.versionOverwrite);
-        if (matches && matches.length >= 1) {
-            return matches[0].toString();
+        if (this._overwriteMinorString != null) {
+            return this._overwriteMinorString;
         }
-        return "";
+        const matches = this._overwriteMinorRex.exec(this.versionOverwrite);
+
+        core.debug("Inputs.overwriteMinorString RexMatches: " + JSON.stringify(matches ?? "null"));
+
+        if (matches && matches.length >= 2) {
+            return (this._overwriteMinorString = matches[1].toString());
+        }
+        return (this._overwriteMinorString = "");
     }
 
     public get overwritePatchString(): string {
-        const matches = this._overwritePatchRex.exec(this.versionOverwrite);
-        if (matches && matches.length >= 1) {
-            return matches[0].toString();
+        if (this._overwritePatchString != null) {
+            return this._overwritePatchString;
         }
-        return "";
+        const matches = this._overwritePatchRex.exec(this.versionOverwrite);
+
+        core.debug("Inputs.overwritePatchString RexMatches: " + JSON.stringify(matches ?? "null"));
+
+        if (matches && matches.length >= 2) {
+            return (this._overwritePatchString = matches[1].toString());
+        }
+        return (this._overwritePatchString = "");
     }
 
     public get overwriteBuildString(): string {
-        const matches = this._overwriteBuildRex.exec(this.versionOverwrite);
-        if (matches && matches.length >= 1) {
-            return matches[0].toString();
+        if (this._overwriteBuildString != null) {
+            return this._overwriteBuildString;
         }
-        return "";
+        const matches = this._overwriteBuildRex.exec(this.versionOverwrite);
+
+        core.debug("Inputs.overwriteBuildString RexMatches: " + JSON.stringify(matches ?? "null"));
+
+        if (matches && matches.length >= 2) {
+            return (this._overwriteBuildString = matches[1].toString());
+        }
+        return (this._overwriteBuildString = "");
     }
 
     public get needPushChanges(): boolean {
@@ -194,28 +274,14 @@ export class Inputs {
         return false;
     }
 
-    public getVersionFiles(): string[] {
+    public async getVersionFiles(): Promise<string[]> {
         if (this._versionFiles.length > 0) {
             return this._versionFiles;
         }
 
-        const versionFilesPatterns = this.versionFiles;
+        const globby = await import("globby");
 
-        core.debug(`Inputs.versionFilesPatternsString: ${versionFilesPatterns}`);
-
-        let patterns: string[] = [];
-
-        if (Inputs._isJsonArray(versionFilesPatterns)) {
-            core.debug("Inputs.getVersionFiles versionFilesPatterns isJsonArray: true");
-            patterns = JSON.parse(versionFilesPatterns) as string[];
-        } else if (typeof versionFilesPatterns == "string" && versionFilesPatterns) {
-            core.debug("Inputs.getVersionFiles versionFilesPatterns isJsonArray: false");
-            patterns = [versionFilesPatterns];
-        }
-
-        core.debug(`Inputs.versionFilesPatterns: ${JSON.stringify(patterns)}`);
-
-        this._versionFiles = globby.globbySync(patterns, {
+        this._versionFiles = await globby.globby(this.versionFilesPatterns, {
             gitignore: true,
             expandDirectories: true,
             onlyFiles: true,

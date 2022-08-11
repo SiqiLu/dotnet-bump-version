@@ -30,9 +30,9 @@ export class Bump {
         ["InformationalVersion", this._informationalVersionRex]
     ]);
 
-    private static readonly _optionsRex = /(--(major)|--(minor)|--(patch))/i;
+    private static readonly _optionsRex = /(--(major)|--(minor)|--(patch)|--(build))/i;
 
-    private static readonly _numberRex = /^[1-9]+[0-9]*$/;
+    private static readonly _numberRex = /^[1-9]+[0-9]*$|^0$/;
 
     private readonly _file: string;
 
@@ -89,6 +89,22 @@ export class Bump {
         return this._inputs.overwriteBuild;
     }
 
+    public get overwriteMajorString(): string {
+        return this._inputs.overwriteMajorString;
+    }
+
+    public get overwriteMinorString(): string {
+        return this._inputs.overwriteMinorString;
+    }
+
+    public get overwritePatchString(): string {
+        return this._inputs.overwritePatchString;
+    }
+
+    public get overwriteBuildString(): string {
+        return this._inputs.overwriteBuildString;
+    }
+
     private static _isNumber(value: string): boolean {
         return this._numberRex.test(value);
     }
@@ -103,15 +119,16 @@ export class Bump {
         let bumped = false;
         let version = part;
 
-        if (part) {
-            if (needOverwrite && overwriteString) {
-                version = overwriteString;
-            } else if (needBump && Bump._isNumber(part)) {
-                version = (parseInt(part) + 1).toString();
-                bumped = true;
-            } else if (previousBumped && Bump._isNumber(part)) {
-                version = "0";
-            }
+        if (needOverwrite) {
+            version = overwriteString;
+            core.debug("Bump._bumpVersionPart overwrite version to: " + version);
+        } else if (needBump && Bump._isNumber(part)) {
+            version = (parseInt(part) + 1).toString();
+            bumped = true;
+            core.debug("Bump._bumpVersionPart bump version to: " + version);
+        } else if (previousBumped && Bump._isNumber(part)) {
+            version = "0";
+            core.debug("Bump._bumpVersionPart reset version to: " + version);
         }
 
         return { bumped, version };
@@ -142,8 +159,10 @@ export class Bump {
     }
 
     public bump(): boolean {
+        core.debug(`Bump.bump file: ${this._file}`);
         const originContent = fs.readFileSync(this._file, "utf8").toString();
-        core.debug(`Bump.bump originContent: ${originContent}`);
+        core.debug("Bump.bump originContent: ");
+        core.debug(originContent);
 
         let bumppedContent = originContent.trim();
         let fileModified = false;
@@ -166,11 +185,17 @@ export class Bump {
                     // version has major part
                     const majorPart = versionMatches[2].toString();
                     core.debug(`Bump.bump version majorPart: ${majorPart}`);
+                    core.debug("Bump.bump bump majorPart with arguments:");
+                    core.debug(`majorPart: ${majorPart}`);
+                    core.debug(`overwriteMajor: ${this.overwriteMajor.toString()}`);
+                    core.debug(`overwriteMajorString: ${this.overwriteMajorString}`);
+                    core.debug(`bumpMajor: ${this.bumpMajor.toString()}`);
+                    core.debug(`hasBumped: ${hasBumped.toString()}`);
 
                     let bumpResult = Bump._bumpVersionPart(
                         majorPart,
                         this.overwriteMajor,
-                        this._inputs.overwriteMajorString,
+                        this.overwriteMajorString,
                         this.bumpMajor,
                         hasBumped
                     );
@@ -184,11 +209,17 @@ export class Bump {
                     // version has minor part
                     const minorPart = versionMatches[3].toString();
                     core.debug(`Bump.bump version minorPart: ${minorPart}`);
+                    core.debug("Bump.bump bump minorPart with arguments:");
+                    core.debug(`minorPart: ${minorPart}`);
+                    core.debug(`overwriteMinor: ${this.overwriteMinor.toString()}`);
+                    core.debug(`overwriteMinorString: ${this.overwriteMinorString}`);
+                    core.debug(`bumpMinor: ${this.bumpMinor.toString()}`);
+                    core.debug(`hasBumped: ${hasBumped.toString()}`);
 
                     let bumpResult = Bump._bumpVersionPart(
                         minorPart,
                         this.overwriteMinor,
-                        this._inputs.overwriteMinorString,
+                        this.overwriteMinorString,
                         this.bumpMinor,
                         hasBumped
                     );
@@ -202,11 +233,17 @@ export class Bump {
                     // version has patch part
                     const patchPart = versionMatches[4].toString();
                     core.debug(`Bump.bump version patchPart: ${patchPart}`);
+                    core.debug("Bump.bump bump patchPart with arguments:");
+                    core.debug(`patchPart: ${patchPart}`);
+                    core.debug(`overwritePatch: ${this.overwritePatch.toString()}`);
+                    core.debug(`overwritePatchString: ${this.overwritePatchString}`);
+                    core.debug(`bumpPatch: ${this.bumpPatch.toString()}`);
+                    core.debug(`hasBumped: ${hasBumped.toString()}`);
 
                     let bumpResult = Bump._bumpVersionPart(
                         patchPart,
                         this.overwritePatch,
-                        this._inputs.overwritePatchString,
+                        this.overwritePatchString,
                         this.bumpPatch,
                         hasBumped
                     );
@@ -220,11 +257,17 @@ export class Bump {
                     // version has build part
                     const buildPart = versionMatches[5].toString();
                     core.debug(`Bump.bump version buildPart: ${buildPart}`);
+                    core.debug("Bump.bump bump buildPart with arguments:");
+                    core.debug(`buildPart: ${buildPart}`);
+                    core.debug(`overwriteBuild: ${this.overwriteBuild.toString()}`);
+                    core.debug(`overwriteBuildString: ${this.overwriteBuildString}`);
+                    core.debug(`bumpBuild: ${this.bumpBuild.toString()}`);
+                    core.debug(`hasBumped: ${hasBumped.toString()}`);
 
                     let bumpResult = Bump._bumpVersionPart(
                         buildPart,
                         this.overwriteBuild,
-                        this._inputs.overwriteBuildString,
+                        this.overwriteBuildString,
                         this.bumpBuild,
                         hasBumped
                     );
@@ -237,7 +280,7 @@ export class Bump {
                 const modifiedVersion = Bump._buildModifiedVersion(major, minor, patch, build);
                 core.debug(`Bump.bump ${k}.modifiedVersion: ${modifiedVersion ?? "null"}`);
 
-                if (modifiedVersion != null) {
+                if (modifiedVersion != null && modifiedVersion !== originVersion) {
                     const originMatch = versionMatches[0].toString();
                     core.debug(`Bump.bump ${k}.originMatch: ${originMatch}`);
 
@@ -248,6 +291,7 @@ export class Bump {
 
                     core.info(`"${this._file}" bump ${k} to "${modifiedVersion}" from "${originVersion}".`);
                     fileModified = true;
+                    core.info(`"${this._file}" has been marked as "modified".`);
                 } else {
                     core.info(`"${this._file}" ${k} "${originVersion}" is unbumped.`);
                 }
@@ -256,17 +300,22 @@ export class Bump {
             }
         });
 
+        core.debug(`Bump.bump fileModified: ${fileModified.toString()}`);
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (fileModified) {
             fs.writeFileSync(this._file, bumppedContent, "utf8");
-            core.debug(`Bump.bump bumppedContent: ${bumppedContent}`);
+            core.debug("Bump.bump bumppedContent:");
+            core.debug(bumppedContent);
+            core.info(`Bump.bump ${this._file} overwrited with new versions.`);
         }
 
+        core.info(`Bump.bump for ${this._file} is finishing...`);
+        core.info("");
         return fileModified;
     }
 
     private _getBumpOptionFromCommitMessage(): string {
-        let options = "build";
+        let options = "none";
         const optionsMatches = Bump._optionsRex.exec(this._commitMessage);
         core.debug(`Bump._getBumpOptionFromCommitMessage optionsMatches: ${JSON.stringify(optionsMatches)}`);
 
@@ -274,7 +323,7 @@ export class Bump {
             options = optionsMatches[1].toString();
         }
 
-        core.debug(`Bump._getBumpOptionFromCommitMessage options: ${JSON.stringify(options)}`);
+        core.debug(`Bump._getBumpOptionFromCommitMessage options: ${options}`);
 
         return options;
     }

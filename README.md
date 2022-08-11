@@ -80,7 +80,7 @@ jobs:
             - name: Build
               run: dotnet build --configuration Release --no-restore
             - name: Bump versions
-              uses: SiqiLu/dotnet-bump-version@master
+              uses: SiqiLu/dotnet-bump-version@2.1.0
               with:
                   version_files: "**/*.csproj"
                   version_mask: 0.0.1.0

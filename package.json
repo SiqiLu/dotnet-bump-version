@@ -1,6 +1,6 @@
 {
     "name": "dotnet-bump-version",
-    "version": "1.0.2",
+    "version": "2.1.0",
     "description": "A GitHub Action to easily bump .NET Core project version files(.csproj).",
     "main": "lib/main.js",
     "scripts": {

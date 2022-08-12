@@ -1,21 +1,50 @@
 import * as core from "@actions/core";
 import * as fs from "fs";
-import * as path from "path";
-import * as globby from "globby";
-import { Context } from "@actions/github/lib/context";
+import type { Context } from "@actions/github/lib/context";
 import { EOL } from "os";
 
+type GithubEvent = {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    head_commit: {
+        id: string;
+        message: string;
+        timestamp: string;
+        url: string;
+        committer: {
+            name: string;
+            email: string;
+            username: string;
+        };
+    };
+    pusher: {
+        name: string;
+        email: string;
+    };
+};
+
 export class ActionContext {
-    private githubContext: Context;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private payload: any;
+    private readonly _githubContext: Context;
+
+    private readonly _payload: GithubEvent | undefined;
 
     constructor(githubContext: Context) {
-        this.githubContext = githubContext;
-        this.payload = {};
-        if (process.env.GITHUB_EVENT_PATH) {
+        this._githubContext = githubContext;
+
+        core.debug("///    githubContext:");
+        core.debug("///    " + JSON.stringify(this._githubContext));
+        core.debug("");
+
+        if (process.env.GITHUB_EVENT_PATH != null) {
             if (fs.existsSync(process.env.GITHUB_EVENT_PATH)) {
-                this.payload = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, { encoding: "utf8" }));
+                let githubEvent = JSON.parse(
+                    fs.readFileSync(process.env.GITHUB_EVENT_PATH, { encoding: "utf8" })
+                ) as unknown;
+
+                core.debug("///    githubEvent:");
+                core.debug("///    " + JSON.stringify(githubEvent));
+                core.debug("");
+
+                this._payload = githubEvent as GithubEvent;
             } else {
                 const eventPath = process.env.GITHUB_EVENT_PATH;
                 process.stdout.write(`GITHUB_EVENT_PATH ${eventPath} does not exist${EOL}`);
@@ -24,69 +53,36 @@ export class ActionContext {
         }
     }
 
-    async getVersionFiles(): Promise<string[]> {
-        const versionFilesStr = core.getInput("version_files") || "**/*.csproj";
-
-        core.debug(`ActionContext.getVersionFiles versionFilesStr: ${versionFilesStr}`);
-
-        let patterns: string[] = [];
-
-        if (ActionContext.isJsonArray(versionFilesStr) && versionFilesStr) {
-            core.debug(
-                `ActionContext.getVersionFiles versionFilesStr isJsonArray: ${ActionContext.isJsonArray(
-                    versionFilesStr
-                )}`
-            );
-
-            patterns = JSON.parse(versionFilesStr);
-        } else if (typeof versionFilesStr == "string" && versionFilesStr) {
-            patterns = [versionFilesStr];
-        }
-
-        core.debug(`ActionContext.getVersionFiles versionFilesStr patterns: ${JSON.stringify(patterns)}`);
-
-        const versionFiles = await globby.default(patterns, {
-            gitignore: true,
-            expandDirectories: true,
-            onlyFiles: true,
-            ignore: [],
-            cwd: process.cwd(),
-        });
-
-        core.debug(`ActionContext.getVersionFiles _versionFiles: ${JSON.stringify(versionFiles)}`);
-
-        return versionFiles;
+    public get eventName(): string {
+        return this._githubContext.eventName;
     }
 
-    get eventName(): string {
-        return this.githubContext.eventName;
+    public get sha(): string {
+        return this._githubContext.sha;
     }
 
-    get sha(): string {
-        return this.githubContext.sha;
+    public get ref(): string {
+        return this._githubContext.ref;
     }
 
-    get ref(): string {
-        return this.githubContext.ref;
+    public get githubActor(): string {
+        return process.env.GITHUB_ACTOR ?? "";
     }
 
-    get githubActor(): string {
-        return process.env.GITHUB_ACTOR || "";
+    public get githubRepository(): string {
+        return process.env.GITHUB_REPOSITORY ?? "";
     }
 
-    get githubRepository(): string {
-        return process.env.GITHUB_REPOSITORY || "";
+    public get githubWorkspace(): string {
+        return process.env.GITHUB_REPOSITORY ?? "";
     }
 
-    get githubWorkspace(): string {
-        return process.env.GITHUB_REPOSITORY || "";
+    public get branch(): string {
+        // "ref":"refs/heads/master"
+        return process.env.BRANCH ?? this.ref.substring("refs/heads/".length);
     }
 
-    get branch(): string {
-        return process.env.BRANCH || this.ref.substr("refs/heads/".length) || "";
-    }
-
-    get headCommit(): {
+    public get headCommit(): {
         id: string;
         message: string;
         timestamp: string;
@@ -96,83 +92,30 @@ export class ActionContext {
         committerUserName: string;
     } {
         return {
-            id: this.payload.head_commit.id.toString(),
-            message: this.payload.head_commit.message.toString(),
-            timestamp: this.payload.head_commit.timestamp.toString(),
-            url: this.payload.head_commit.url.toString(),
-            committerName: this.payload.head_commit.committer.name.toString(),
-            committerEmail: this.payload.head_commit.committer.email.toString(),
-            committerUserName: this.payload.head_commit.committer.username.toString(),
+            id: this._payload?.head_commit.id.toString() ?? "",
+            message: this._payload?.head_commit.message.toString() ?? "",
+            timestamp: this._payload?.head_commit.timestamp.toString() ?? "",
+            url: this._payload?.head_commit.url.toString() ?? "",
+            committerName: this._payload?.head_commit.committer.name.toString() ?? "",
+            committerEmail: this._payload?.head_commit.committer.email.toString() ?? "",
+            committerUserName: this._payload?.head_commit.committer.username.toString() ?? ""
         };
     }
 
-    get pusher(): { name: string; email: string } {
+    public get pusher(): { name: string; email: string } {
         return {
-            name: this.payload.pusher.name.toString(),
-            email: this.payload.pusher.email.toString(),
+            name: this._payload?.pusher.name.toString() ?? "",
+            email: this._payload?.pusher.email.toString() ?? ""
         };
-    }
-
-    get versionFiles(): string {
-        return core.getInput("version_files");
-    }
-
-    get githubToken(): string {
-        return core.getInput("github_token");
-    }
-
-    get needPushChanges(): boolean {
-        return this.githubToken ? true : false;
-    }
-
-    private static isJson(str: string): boolean {
-        if (typeof str == "string") {
-            try {
-                const obj = JSON.parse(str);
-                if (typeof obj == "object" && obj) {
-                    return true;
-                } else {
-                    return false;
-                }
-            } catch (e) {
-                // Is is not a json.
-                return false;
-            }
-        }
-
-        // It is not a string!
-        return false;
-    }
-
-    private static isJsonArray(str: string): boolean {
-        if (typeof str == "string") {
-            try {
-                const obj = JSON.parse(str);
-                if (Array.isArray(obj) && obj) {
-                    return true;
-                } else {
-                    return false;
-                }
-            } catch (e) {
-                // Is is not a json.
-                return false;
-            }
-        }
-
-        // It is not a string!
-        return false;
-    }
-
-    private static readFiles(dirPath: string): void {
-        const fileOrDir = fs.readdirSync(dirPath, "utf8");
-        fileOrDir.forEach(e => {
-            const fileOrDirPath = path.join(dirPath, e);
-            if (fs.statSync(fileOrDirPath).isFile()) {
-                core.debug(fileOrDirPath);
-            }
-            if (fs.statSync(fileOrDirPath).isDirectory()) {
-                this.readFiles(fileOrDirPath);
-            }
-        });
     }
 }
+
+/* 
+githubContext Sample:
+{"payload":{"after":"2c2d13565ac833b802e30658ae7f4e800a2e3bc0","base_ref":null,"before":"c2fda8bea4f16380125475e972adbfc0b0eead18","commits":[{"author":{"email":"lu.siqi@outlook.com","name":"Siqi Lu","username":"SiqiLu"},"committer":{"email":"lu.siqi@outlook.com","name":"Siqi Lu","username":"SiqiLu"},"distinct":true,"id":"2c2d13565ac833b802e30658ae7f4e800a2e3bc0","message":"Update workflow config file","timestamp":"2022-08-11T17:52:18+08:00","tree_id":"4524c1738dd56ea214b1d4373a9911e90700eeff","url":"https://github.com/SiqiLu/DotnetBumpVersionTestSolution/commit/2c2d13565ac833b802e30658ae7f4e800a2e3bc0"}],"compare":"https://github.com/SiqiLu/DotnetBumpVersionTestSolution/compare/c2fda8bea4f1...2c2d13565ac8","created":false,"deleted":false,"forced":true,"head_commit":{"author":{"email":"lu.siqi@outlook.com","name":"Siqi Lu","username":"SiqiLu"},"committer":{"email":"lu.siqi@outlook.com","name":"Siqi Lu","username":"SiqiLu"},"distinct":true,"id":"2c2d13565ac833b802e30658ae7f4e800a2e3bc0","message":"Update workflow config file","timestamp":"2022-08-11T17:52:18+08:00","tree_id":"4524c1738dd56ea214b1d4373a9911e90700eeff","url":"https://github.com/SiqiLu/DotnetBumpVersionTestSolution/commit/2c2d13565ac833b802e30658ae7f4e800a2e3bc0"},"pusher":{"email":"lu.siqi@outlook.com","name":"SiqiLu"},"ref":"refs/heads/master","repository":{"allow_forking":true,"archive_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/{archive_format}{/ref}","archived":false,"assignees_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/assignees{/user}","blobs_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/git/blobs{/sha}","branches_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/branches{/branch}","clone_url":"https://github.com/SiqiLu/DotnetBumpVersionTestSolution.git","collaborators_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/collaborators{/collaborator}","comments_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/comments{/number}","commits_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/commits{/sha}","compare_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/compare/{base}...{head}","contents_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/contents/{+path}","contributors_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/contributors","created_at":1660156415,"default_branch":"master","deployments_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/deployments","description":"Test project for GitHub action \"dotnet-bump-version\".","disabled":false,"downloads_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/downloads","events_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/events","fork":false,"forks":0,"forks_count":0,"forks_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/forks","full_name":"SiqiLu/DotnetBumpVersionTestSolution","git_commits_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/git/commits{/sha}","git_refs_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/git/refs{/sha}","git_tags_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/git/tags{/sha}","git_url":"git://github.com/SiqiLu/DotnetBumpVersionTestSolution.git","has_downloads":true,"has_issues":true,"has_pages":false,"has_projects":true,"has_wiki":true,"homepage":null,"hooks_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/hooks","html_url":"https://github.com/SiqiLu/DotnetBumpVersionTestSolution","id":523456051,"is_template":false,"issue_comment_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/issues/comments{/number}","issue_events_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/issues/events{/number}","issues_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/issues{/number}","keys_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/keys{/key_id}","labels_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/labels{/name}","language":"C#","languages_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/languages","license":null,"master_branch":"master","merges_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/merges","milestones_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/milestones{/number}","mirror_url":null,"name":"DotnetBumpVersionTestSolution","node_id":"R_kgDOHzNOMw","notifications_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/notifications{?since,all,participating}","open_issues":0,"open_issues_count":0,"owner":{"avatar_url":"https://avatars.githubusercontent.com/u/3321644?v=4","email":"lu.siqi@outlook.com","events_url":"https://api.github.com/users/SiqiLu/events{/privacy}","followers_url":"https://api.github.com/users/SiqiLu/followers","following_url":"https://api.github.com/users/SiqiLu/following{/other_user}","gists_url":"https://api.github.com/users/SiqiLu/gists{/gist_id}","gravatar_id":"","html_url":"https://github.com/SiqiLu","id":3321644,"login":"SiqiLu","name":"SiqiLu","node_id":"MDQ6VXNlcjMzMjE2NDQ=","organizations_url":"https://api.github.com/users/SiqiLu/orgs","received_events_url":"https://api.github.com/users/SiqiLu/received_events","repos_url":"https://api.github.com/users/SiqiLu/repos","site_admin":false,"starred_url":"https://api.github.com/users/SiqiLu/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/SiqiLu/subscriptions","type":"User","url":"https://api.github.com/users/SiqiLu"},"private":false,"pulls_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/pulls{/number}","pushed_at":1660211556,"releases_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/releases{/id}","size":7,"ssh_url":"git@github.com:SiqiLu/DotnetBumpVersionTestSolution.git","stargazers":0,"stargazers_count":0,"stargazers_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/stargazers","statuses_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/statuses/{sha}","subscribers_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/subscribers","subscription_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/subscription","svn_url":"https://github.com/SiqiLu/DotnetBumpVersionTestSolution","tags_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/tags","teams_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/teams","topics":[],"trees_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/git/trees{/sha}","updated_at":"2022-08-10T18:51:43Z","url":"https://github.com/SiqiLu/DotnetBumpVersionTestSolution","visibility":"public","watchers":0,"watchers_count":0,"web_commit_signoff_required":false},"sender":{"avatar_url":"https://avatars.githubusercontent.com/u/3321644?v=4","events_url":"https://api.github.com/users/SiqiLu/events{/privacy}","followers_url":"https://api.github.com/users/SiqiLu/followers","following_url":"https://api.github.com/users/SiqiLu/following{/other_user}","gists_url":"https://api.github.com/users/SiqiLu/gists{/gist_id}","gravatar_id":"","html_url":"https://github.com/SiqiLu","id":3321644,"login":"SiqiLu","node_id":"MDQ6VXNlcjMzMjE2NDQ=","organizations_url":"https://api.github.com/users/SiqiLu/orgs","received_events_url":"https://api.github.com/users/SiqiLu/received_events","repos_url":"https://api.github.com/users/SiqiLu/repos","site_admin":false,"starred_url":"https://api.github.com/users/SiqiLu/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/SiqiLu/subscriptions","type":"User","url":"https://api.github.com/users/SiqiLu"}},"eventName":"push","sha":"2c2d13565ac833b802e30658ae7f4e800a2e3bc0","ref":"refs/heads/master","workflow":"test workflow for dotnet-bump-version","action":"__SiqiLu_dotnet-bump-version","actor":"SiqiLu","job":"build","runNumber":12,"runId":2838923159,"apiUrl":"https://api.github.com","serverUrl":"https://github.com","graphqlUrl":"https://api.github.com/graphql"}
+*/
+
+/*
+githubEvent Sample:
+{"after":"2c2d13565ac833b802e30658ae7f4e800a2e3bc0","base_ref":null,"before":"c2fda8bea4f16380125475e972adbfc0b0eead18","commits":[{"author":{"email":"lu.siqi@outlook.com","name":"Siqi Lu","username":"SiqiLu"},"committer":{"email":"lu.siqi@outlook.com","name":"Siqi Lu","username":"SiqiLu"},"distinct":true,"id":"2c2d13565ac833b802e30658ae7f4e800a2e3bc0","message":"Update workflow config file","timestamp":"2022-08-11T17:52:18+08:00","tree_id":"4524c1738dd56ea214b1d4373a9911e90700eeff","url":"https://github.com/SiqiLu/DotnetBumpVersionTestSolution/commit/2c2d13565ac833b802e30658ae7f4e800a2e3bc0"}],"compare":"https://github.com/SiqiLu/DotnetBumpVersionTestSolution/compare/c2fda8bea4f1...2c2d13565ac8","created":false,"deleted":false,"forced":true,"head_commit":{"author":{"email":"lu.siqi@outlook.com","name":"Siqi Lu","username":"SiqiLu"},"committer":{"email":"lu.siqi@outlook.com","name":"Siqi Lu","username":"SiqiLu"},"distinct":true,"id":"2c2d13565ac833b802e30658ae7f4e800a2e3bc0","message":"Update workflow config file","timestamp":"2022-08-11T17:52:18+08:00","tree_id":"4524c1738dd56ea214b1d4373a9911e90700eeff","url":"https://github.com/SiqiLu/DotnetBumpVersionTestSolution/commit/2c2d13565ac833b802e30658ae7f4e800a2e3bc0"},"pusher":{"email":"lu.siqi@outlook.com","name":"SiqiLu"},"ref":"refs/heads/master","repository":{"allow_forking":true,"archive_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/{archive_format}{/ref}","archived":false,"assignees_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/assignees{/user}","blobs_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/git/blobs{/sha}","branches_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/branches{/branch}","clone_url":"https://github.com/SiqiLu/DotnetBumpVersionTestSolution.git","collaborators_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/collaborators{/collaborator}","comments_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/comments{/number}","commits_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/commits{/sha}","compare_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/compare/{base}...{head}","contents_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/contents/{+path}","contributors_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/contributors","created_at":1660156415,"default_branch":"master","deployments_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/deployments","description":"Test project for GitHub action \"dotnet-bump-version\".","disabled":false,"downloads_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/downloads","events_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/events","fork":false,"forks":0,"forks_count":0,"forks_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/forks","full_name":"SiqiLu/DotnetBumpVersionTestSolution","git_commits_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/git/commits{/sha}","git_refs_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/git/refs{/sha}","git_tags_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/git/tags{/sha}","git_url":"git://github.com/SiqiLu/DotnetBumpVersionTestSolution.git","has_downloads":true,"has_issues":true,"has_pages":false,"has_projects":true,"has_wiki":true,"homepage":null,"hooks_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/hooks","html_url":"https://github.com/SiqiLu/DotnetBumpVersionTestSolution","id":523456051,"is_template":false,"issue_comment_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/issues/comments{/number}","issue_events_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/issues/events{/number}","issues_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/issues{/number}","keys_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/keys{/key_id}","labels_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/labels{/name}","language":"C#","languages_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/languages","license":null,"master_branch":"master","merges_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/merges","milestones_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/milestones{/number}","mirror_url":null,"name":"DotnetBumpVersionTestSolution","node_id":"R_kgDOHzNOMw","notifications_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/notifications{?since,all,participating}","open_issues":0,"open_issues_count":0,"owner":{"avatar_url":"https://avatars.githubusercontent.com/u/3321644?v=4","email":"lu.siqi@outlook.com","events_url":"https://api.github.com/users/SiqiLu/events{/privacy}","followers_url":"https://api.github.com/users/SiqiLu/followers","following_url":"https://api.github.com/users/SiqiLu/following{/other_user}","gists_url":"https://api.github.com/users/SiqiLu/gists{/gist_id}","gravatar_id":"","html_url":"https://github.com/SiqiLu","id":3321644,"login":"SiqiLu","name":"SiqiLu","node_id":"MDQ6VXNlcjMzMjE2NDQ=","organizations_url":"https://api.github.com/users/SiqiLu/orgs","received_events_url":"https://api.github.com/users/SiqiLu/received_events","repos_url":"https://api.github.com/users/SiqiLu/repos","site_admin":false,"starred_url":"https://api.github.com/users/SiqiLu/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/SiqiLu/subscriptions","type":"User","url":"https://api.github.com/users/SiqiLu"},"private":false,"pulls_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/pulls{/number}","pushed_at":1660211556,"releases_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/releases{/id}","size":7,"ssh_url":"git@github.com:SiqiLu/DotnetBumpVersionTestSolution.git","stargazers":0,"stargazers_count":0,"stargazers_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/stargazers","statuses_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/statuses/{sha}","subscribers_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/subscribers","subscription_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/subscription","svn_url":"https://github.com/SiqiLu/DotnetBumpVersionTestSolution","tags_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/tags","teams_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/teams","topics":[],"trees_url":"https://api.github.com/repos/SiqiLu/DotnetBumpVersionTestSolution/git/trees{/sha}","updated_at":"2022-08-10T18:51:43Z","url":"https://github.com/SiqiLu/DotnetBumpVersionTestSolution","visibility":"public","watchers":0,"watchers_count":0,"web_commit_signoff_required":false},"sender":{"avatar_url":"https://avatars.githubusercontent.com/u/3321644?v=4","events_url":"https://api.github.com/users/SiqiLu/events{/privacy}","followers_url":"https://api.github.com/users/SiqiLu/followers","following_url":"https://api.github.com/users/SiqiLu/following{/other_user}","gists_url":"https://api.github.com/users/SiqiLu/gists{/gist_id}","gravatar_id":"","html_url":"https://github.com/SiqiLu","id":3321644,"login":"SiqiLu","node_id":"MDQ6VXNlcjMzMjE2NDQ=","organizations_url":"https://api.github.com/users/SiqiLu/orgs","received_events_url":"https://api.github.com/users/SiqiLu/received_events","repos_url":"https://api.github.com/users/SiqiLu/repos","site_admin":false,"starred_url":"https://api.github.com/users/SiqiLu/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/SiqiLu/subscriptions","type":"User","url":"https://api.github.com/users/SiqiLu"}}
+*/

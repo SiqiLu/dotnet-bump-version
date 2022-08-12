@@ -104,6 +104,14 @@ jobs:
 - [x]   2.3 => 2.${{ github.run_number }}
 - [x]   2.3.4.5 => 3.Alpha.5.${{ github.run_number }}
 
+## Break changes
+
+-  Version 1.0.*, this action bump the build part of the version with the default action input options.
+-  2.3.4.5 => 2.3.4.6
+
+-  Version 2.0.*, this action bump the patch part of the version with the default action input options.
+-  2.3.4.5 => 2.3.5.0
+
 ## License
 
 The scripts and documentation in this project are released under the [MIT License](LICENSE)

@@ -44,7 +44,7 @@ This action program only supports "push" events.
       # required: false
       version_overwrite: "*.*.*.*"
 
-      # The github token to push changes.
+      # The github token to push changes. Leave the github_token option as default or empty string, the action will not push any changes to your repository.
       # required: false
       github_token: ${{ secrets.GITHUB_TOKEN }}
 ```

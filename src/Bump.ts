@@ -164,7 +164,7 @@ export class Bump {
 
     public bump(): boolean {
         core.debug(`Bump.bump file: ${this._file}`);
-        const originContent = fs.readFileSync(this._file, "utf8").toString();
+        const originContent = fs.readFileSync(this._file).toString();
         core.debug("Bump.bump originContent: ");
         core.debug(originContent);
 
